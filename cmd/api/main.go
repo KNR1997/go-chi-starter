@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/knr1997/rsvp/internal/auth"
 	"github.com/knr1997/rsvp/internal/db"
 	"github.com/knr1997/rsvp/internal/env"
 	"github.com/knr1997/rsvp/internal/store"
@@ -57,12 +58,20 @@ func main() {
 
 	logger.Info("database connection pool established")
 
+	// Authenticator
+	jwtAuthenticator := auth.NewJWTAuthenticator(
+		cfg.auth.token.secret,
+		cfg.auth.token.iss,
+		cfg.auth.token.iss,
+	)
+
 	store := store.NewStorage(dbConn)
 
 	app := &application{
-		config: cfg,
-		store:  store,
-		logger: logger,
+		config:        cfg,
+		store:         store,
+		logger:        logger,
+		authenticator: jwtAuthenticator,
 	}
 
 	mux := app.mount()

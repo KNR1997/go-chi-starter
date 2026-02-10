@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/knr1997/rsvp/internal/store"
 )
@@ -53,7 +53,7 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	// hash the user password
-	if err := user.Password.Set(payload.Password); err != nil {
+	if err := user.SetPassword(payload.Password); err != nil {
 		app.internalServerError(w, r, err)
 		return
 	}
@@ -126,7 +126,7 @@ func (app *application) createTokenHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if err := user.Password.Compare(payload.Password); err != nil {
+	if err := user.CheckPassword(payload.Password); err != nil {
 		app.unauthorizedErrorResponse(w, r, err)
 		return
 	}

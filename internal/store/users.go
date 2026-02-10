@@ -15,15 +15,16 @@ var (
 )
 
 type User struct {
-	ID        int64          `json:"id"`
-	Username  string         `gorm:"uniqueIndex;not null" json:"username"`
-	Email     string         `gorm:"uniqueIndex;not null" json:"email"`
-	Password  password       `gorm:"-" json:"-"` // not stored directly
-	CreatedAt time.Time      `json:"created_at"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
-	IsActive  bool           `json:"is_active"`
-	RoleID    int64          `json:"role_id"`
-	Role      Role           `json:"role"`
+	ID           int64          `json:"id"`
+	Username     string         `gorm:"uniqueIndex;not null" json:"username"`
+	Email        string         `gorm:"uniqueIndex;not null" json:"email"`
+	Password     password       `gorm:"-" json:"-"` // not stored directly
+	PasswordHash []byte         `gorm:"not null" json:"-"`
+	CreatedAt    time.Time      `json:"created_at"`
+	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`
+	IsActive     bool           `json:"is_active"`
+	RoleID       int64          `json:"role_id"`
+	Role         Role           `json:"role"`
 }
 
 type password struct {
@@ -31,20 +32,18 @@ type password struct {
 	hash []byte
 }
 
-func (p *password) Set(text string) error {
-	hash, err := bcrypt.GenerateFromPassword([]byte(text), bcrypt.DefaultCost)
+func (u *User) SetPassword(plain string) error {
+	hash, err := bcrypt.GenerateFromPassword([]byte(plain), bcrypt.DefaultCost)
 	if err != nil {
 		return err
 	}
 
-	p.text = &text
-	p.hash = hash
-
+	u.PasswordHash = hash
 	return nil
 }
 
-func (p *password) Compare(text string) error {
-	return bcrypt.CompareHashAndPassword(p.hash, []byte(text))
+func (u *User) CheckPassword(plain string) error {
+	return bcrypt.CompareHashAndPassword(u.PasswordHash, []byte(plain))
 }
 
 type UsersStore struct {
@@ -72,11 +71,13 @@ func (s *UsersStore) GetByEmail(ctx context.Context, email string) (*User, error
 	var user User
 
 	err := s.db.WithContext(ctx).
-		First(&user, email).
+		Where("email = ?", email).
+		First(&user).
 		Error
-	if err != nil {
-		return nil, err
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, ErrNotFound
 	}
 
-	return &user, nil
+	return &user, err
 }
