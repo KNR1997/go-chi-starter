@@ -1,17 +1,46 @@
 package store
 
 import (
+	"context"
+	"database/sql"
+	"errors"
+	"time"
+
 	"gorm.io/gorm"
 )
 
+var (
+	ErrNotFound          = errors.New("resource not found")
+	ErrConflict          = errors.New("resource already exists")
+	QueryTimeoutDuration = time.Second * 5
+)
+
 type Storage struct {
-	Posts PostsStore
+	Posts PostStore
 	Users UsersStore
+	Roles interface {
+		GetByName(context.Context, string) (*Role, error)
+	}
 }
 
 func NewStorage(db *gorm.DB) Storage {
 	return Storage{
-		Posts: PostsStore{db},
+		Posts: PostStore{db},
 		Users: UsersStore{db},
+		Roles: &RoleStore{db},
 	}
+}
+
+func withTx(db *sql.DB, ctx context.Context, fn func(*sql.Tx) error) error {
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	if err := fn(tx); err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
 }

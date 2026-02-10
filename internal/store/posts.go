@@ -17,12 +17,60 @@ type Post struct {
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
-type PostsStore struct {
+type PostStore struct {
 	db *gorm.DB
 }
 
-func (s PostsStore) Create(ctx context.Context, post *Post) error {
+func (s PostStore) Create(ctx context.Context, post *Post) error {
 	return s.db.WithContext(ctx).Create(post).Error
+}
+
+func (s *PostStore) GetByID(ctx context.Context, id int64) (*Post, error) {
+	var post Post
+
+	err := s.db.WithContext(ctx).
+		First(&post, id).
+		Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &post, nil
+}
+
+func (s *PostStore) Delete(ctx context.Context, id int64) error {
+	result := s.db.WithContext(ctx).
+		Delete(&Post{}, id)
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return ErrNotFound
+	}
+
+	return nil
+}
+
+func (s *PostStore) Update(ctx context.Context, post *Post) error {
+	result := s.db.WithContext(ctx).
+		Model(&Post{}).
+		Where("id = ?", post.ID).
+		Updates(map[string]interface{}{
+			"title":   post.Title,
+			"content": post.Content,
+		})
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return ErrNotFound
+	}
+
+	return nil
 }
 
 // func (s *PostsStore) Create(ctx context.Context, post *Post) error {

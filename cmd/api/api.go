@@ -12,15 +12,17 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	_ "github.com/knr1997/rsvp/docs"
+	"github.com/knr1997/rsvp/internal/auth"
 	"github.com/knr1997/rsvp/internal/store"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 	"go.uber.org/zap"
 )
 
 type application struct {
-	config config
-	store  store.Storage
-	logger *zap.SugaredLogger
+	config        config
+	store         store.Storage
+	logger        *zap.SugaredLogger
+	authenticator auth.Authenticator
 }
 
 type config struct {
@@ -30,9 +32,25 @@ type config struct {
 	apiURL string
 	// mail        mailConfig
 	frontendURL string
-	// auth        authConfig
+	auth        authConfig
 	// redisCfg    redisConfig
 	// rateLimiter ratelimiter.Config
+}
+
+type authConfig struct {
+	basic basicConfig
+	token tokenConfig
+}
+
+type tokenConfig struct {
+	secret string
+	exp    time.Duration
+	iss    string
+}
+
+type basicConfig struct {
+	user string
+	pass string
 }
 
 type dbConfig struct {
@@ -52,16 +70,32 @@ func (app *application) mount() http.Handler {
 	r.Use(middleware.Recoverer) // recover from crashes
 	r.Use(middleware.Timeout(60 * time.Second))
 
+	// Swagger UI
+	r.Get("/swagger/*", httpSwagger.WrapHandler)
+
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("all good"))
 	})
 
 	r.Route("/posts", func(r chi.Router) {
+		r.Use(app.AuthTokenMiddleware)
 		r.Post("/", app.createPostHandler)
+
+		r.Route("/{postID}", func(r chi.Router) {
+			r.Use(app.postsContextMiddleware)
+			r.Get("/", app.getPostHandler)
+
+			// r.Patch("/", app.checkPostOwnership("moderator", app.updatePostHandler))
+			r.Delete("/", app.checkPostOwnership("admin", app.deletePostHandler))
+		})
 	})
 
-	// Swagger UI
-	r.Get("/swagger/*", httpSwagger.WrapHandler)
+	// Public routes
+	r.Route("/authentication", func(r chi.Router) {
+		r.Post("/user", app.registerUserHandler)
+		r.Post("/token", app.createTokenHandler)
+	})
+
 	return r
 }
 

@@ -36,6 +36,8 @@ require (
 require (
 	github.com/go-chi/chi/v5 v5.2.5 // indirect
 	github.com/go-playground/validator/v10 v10.30.1
+	github.com/golang-jwt/jwt/v4 v4.5.2
+	github.com/google/uuid v1.6.0
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/swaggo/http-swagger/v2 v2.0.2
