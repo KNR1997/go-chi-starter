@@ -1,0 +1,77 @@
+basePath: /
+definitions:
+  store.Post:
+    properties:
+      content:
+        type: string
+      created_at:
+        description: Tags      []string       `json:"tags"`
+        type: string
+      id:
+        type: integer
+      title:
+        type: string
+      user_id:
+        type: integer
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@example.com
+    name: API Support
+  description: REST API for RSVP backend
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: https://example.com/terms
+  title: RSVP API
+  version: "1.0"
+paths:
+  /health:
+    get:
+      description: Healthcheck endpoint
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+      summary: Healthcheck
+      tags:
+      - ops
+  /posts:
+    post:
+      consumes:
+      - application/json
+      description: Create a post for a user
+      parameters:
+      - description: Post payload
+        in: body
+        name: post
+        required: true
+        schema:
+          $ref: '#/definitions/store.Post'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/store.Post'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a post
+      tags:
+      - posts
+swagger: "2.0"
