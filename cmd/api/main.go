@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+
 	"github.com/knr1997/rsvp/internal/auth"
 	"github.com/knr1997/rsvp/internal/db"
 	"github.com/knr1997/rsvp/internal/env"
@@ -31,6 +33,17 @@ func main() {
 			maxOpenConns: env.GetInt("DB_MAX_OPEN_CONNS", 30),
 			maxIdleConns: env.GetInt("DB_MAX_IDLE_CONNS", 30),
 			maxIdleTime:  env.GetString("DB_MAX_IDLE_TIME", "15m"),
+		},
+		auth: authConfig{
+			basic: basicConfig{
+				user: env.GetString("AUTH_BASIC_USER", "admin"),
+				pass: env.GetString("AUTH_BASIC_PASS", "admin"),
+			},
+			token: tokenConfig{
+				secret: env.GetString("AUTH_TOKEN_SECRET", "example"),
+				exp:    time.Hour * 24 * 3, // 3 days
+				iss:    "rsvp",
+			},
 		},
 	}
 
